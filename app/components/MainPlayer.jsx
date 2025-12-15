@@ -87,6 +87,11 @@ export default function MainPlayer(props) {
             if (props.onNext) props.onNext();
           }
         },
+<<<<<<< HEAD
+=======
+        onStateChange: (e) => onPlayerStateChange(e), // 상태 변경 시 호출될 함수 연결
+        onError: onPlayerError, // 에러 로그 추가
+>>>>>>> 131156c9bf9cf71fcce71be47c5c70ce365d3ab8
       },
     });
   }, [currentVideoId]);
@@ -114,7 +119,86 @@ export default function MainPlayer(props) {
       const curr = playerRef.current.getCurrentTime();
       if (!isNaN(curr)) setCurrentTime(curr);
     }
+<<<<<<< HEAD
     animationRef.current = requestAnimationFrame(updateProgress);
+=======
+    // API 스크립트가 없다면 동적으로 생성하여 페이지에 추가합니다.
+    const tag = document.createElement("script");
+    tag.src = "https://www.youtube.com/iframe_api";
+    const firstScriptTag = document.getElementsByTagName("script")[0];
+    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+    // 스크립트 로드가 완료되면 YouTube API가 이 전역 함수를 호출합니다.
+    window.onYouTubeIframeAPIReady = () => initializePlayer();
+
+    // 컴포넌트가 언마운트될 때 정리(cleanup) 함수
+    return () => {
+      if (animationFrameRef.current)
+        cancelAnimationFrame(animationFrameRef.current);
+      window.onYouTubeIframeAPIReady = null;
+    };
+  }, [initializePlayer]);
+
+  // --- 핵심 비디오 제어 로직 ---
+  // currentVideoId가 (부모에 의해) 변경되었고 플레이어가 존재하면, 새 비디오를 로드합니다.
+  useEffect(() => {
+    const p = playerRef.current;
+    if (!p || !currentVideoId) return;
+    if (typeof p.loadVideoById === "function") {
+      try {
+        p.loadVideoById(currentVideoId);
+      } catch (e) {
+        console.warn("loadVideoById 실패:", e);
+      }
+    }
+  }, [currentVideoId]);
+
+  // 플레이어 상태 변경 이벤트 핸들러. (재생, 종료, 일시정지 등)
+  const onPlayerStateChange = (event) => {
+    const p = playerRef.current;
+    if (!p) return;
+
+    if (event.data === window.YT.PlayerState.PLAYING) {
+      setIsPlaying(true);
+      setTotalTime(p.getDuration ? p.getDuration() : 0);
+    } else if (event.data === window.YT.PlayerState.ENDED) {
+      setIsPlaying(false);
+      onNextTrack?.(); // 다음 곡 재생 요청
+    } else if (event.data === window.YT.PlayerState.PAUSED) {
+      setIsPlaying(false);
+    }
+  };
+
+  // YT 에러 로깅
+  const onPlayerError = (event) => {
+    const code = event?.data;
+    const reason =
+      {
+        2: "Invalid parameter",
+        5: "HTML5 player error",
+        100: "Video not found / private",
+        101: "Embedding disabled by owner",
+        150: "Embedding disabled by owner",
+      }[code] || "Unknown";
+    console.error(
+      `[YT Error] code=${code} (${reason}) videoId=${currentVideoId}`
+    );
+  };
+
+  // --- 재생 바(Progress Bar) 업데이트 로직 ---
+  // requestAnimationFrame을 사용하여 부드럽고 효율적으로 재생 바를 업데이트합니다.
+  const updateProgressBar = useCallback(() => {
+    const p = playerRef.current;
+    if (p && typeof p.getCurrentTime === "function" && !isDragging) {
+      const current = p.getCurrentTime();
+      // 0.25초 이상 차이가 날 때만 상태를 업데이트하여 불필요한 렌더링을 줄입니다 (Throttling).
+      if (Math.abs(current - lastReportedTimeRef.current) > 0.25) {
+        lastReportedTimeRef.current = current;
+        setCurrentTime(current);
+      }
+    }
+    animationFrameRef.current = requestAnimationFrame(updateProgressBar);
+>>>>>>> 131156c9bf9cf71fcce71be47c5c70ce365d3ab8
   }, [isDragging]);
 
   useEffect(() => {
@@ -188,11 +272,32 @@ export default function MainPlayer(props) {
     `https://i.ytimg.com/vi/${currentVideoId}/hqdefault.jpg`;
 
   return (
+<<<<<<< HEAD
     <div className="w-full h-full flex items-center justify-between px-6 bg-white/95 dark:bg-slate-900/95 backdrop-blur border-t border-slate-200 dark:border-slate-800 transition-all duration-300">
       {/* Left: Info */}
       <div className="flex items-center gap-4 w-1/3 min-w-0">
         <div className="w-14 h-14 rounded-lg overflow-hidden bg-slate-200 shadow-md flex-shrink-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
+=======
+    <main
+      className={`${glassmorphismStyle} p-8 flex-1 flex flex-col items-center justify-center text-white/90`}
+    >
+      {/* player 요소를 display:none 대신 오프스크린*/}
+      <div
+        id="player"
+        style={{
+          position: "absolute",
+          width: 1,
+          height: 1,
+          left: -9999,
+          top: 0,
+          overflow: "hidden",
+        }}
+      ></div>
+
+      <div className="w-52 h-52 rounded-lg shadow-2xl overflow-hidden mb-6">
+        {displayAlbumArt ? (
+>>>>>>> 131156c9bf9cf71fcce71be47c5c70ce365d3ab8
           <img
             src={displayCover}
             alt="art"
