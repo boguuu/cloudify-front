@@ -7,29 +7,29 @@ import LoginPage from "@/app/login/LoginPage";
 import HomePage from "@/app/homepage/HomePage";
 
 // 검색 후 보여줄 임시 플레이리스트 데이터
-const mockSongs = [
-  { _id: "1", videoId: "UaGBz_Y_iUI", title: "밤편지", artist: "아이유 (IU)" },
-  { _id: "2", videoId: "0s1pneO-p3Y", title: "위로", artist: "권진아" },
-  {
-    _id: "3",
-    videoId: "D4fbh_s_i50",
-    title: "그대라는 사치",
-    artist: "한동근",
-  },
-  {
-    _id: "4",
-    videoId: "Fq5H61D0OQY",
-    title: "수고했어, 오늘도",
-    artist: "옥상달빛",
-  },
-  {
-    _id: "5",
-    videoId: "Dic22_k_e3U",
-    title: "걱정말아요 그대",
-    artist: "이적",
-  },
-  { _id: "6", videoId: "5J6e4h3A34s", title: "숨", artist: "박효신" },
-];
+// const mockSongs = [
+//   { _id: "1", videoId: "UaGBz_Y_iUI", title: "밤편지", artist: "아이유 (IU)" },
+//   { _id: "2", videoId: "0s1pneO-p3Y", title: "위로", artist: "권진아" },
+//   {
+//     _id: "3",
+//     videoId: "D4fbh_s_i50",
+//     title: "그대라는 사치",
+//     artist: "한동근",
+//   },
+//   {
+//     _id: "4",
+//     videoId: "Fq5H61D0OQY",
+//     title: "수고했어, 오늘도",
+//     artist: "옥상달빛",
+//   },
+//   {
+//     _id: "5",
+//     videoId: "Dic22_k_e3U",
+//     title: "걱정말아요 그대",
+//     artist: "이적",
+//   },
+//   { _id: "6", videoId: "5J6e4h3A34s", title: "숨", artist: "박효신" },
+// ];
 
 export default function Home() {
   const router = useRouter();

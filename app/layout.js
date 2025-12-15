@@ -15,8 +15,8 @@ const geistMono = localFont({
 });
 
 export const metadata = {
-  title: "Cloudify", // 앱 이름으로 변경
-  description: "대화형 음악 추천 서비스", // 앱 설명으로 변경
+  title: "Cloudify",
+  description: "대화형 음악 추천 서비스",
 };
 
 export default function RootLayout({ children }) {

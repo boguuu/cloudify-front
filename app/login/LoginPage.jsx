@@ -1,13 +1,10 @@
 "use client";
 
-// import { signIn } from "next-auth/react"; // <-- 삭제됨
 import { Music, Headphones, Sparkles, ArrowRight } from "lucide-react";
 import Image from "next/image";
 
 export default function LoginPage() {
   const handleLogin = () => {
-    // [수정] NextAuth 대신 백엔드 OAuth 주소로 직접 이동
-    // 로그인 성공 후 백엔드가 https://dev.cloudify.lol:3000/ 으로 다시 보내줍니다.
     window.location.href =
       "https://api.cloudify.lol/oauth2/authorization/google?redirect_uri=https://dev.cloudify.lol:3000/";
   };

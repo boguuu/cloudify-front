@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Menu } from "lucide-react";
 
 import Sidebar from "../components/Sidebar";
-// [수정됨] 이제 같은 폴더에 있으므로 ./AiChat 입니다.
 import AiChat from "./AiChat";
 
 export default function ChatPage() {
@@ -15,9 +14,8 @@ export default function ChatPage() {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [session, setSession] = useState(null);
 
-  // UI 상태
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
+  // UI 상태 (초기값: 닫힘)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // 1. 인증 체크
   useEffect(() => {
@@ -42,23 +40,7 @@ export default function ChatPage() {
     checkAuth();
   }, [router]);
 
-  // 2. 반응형 체크
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 768) {
-        setIsMobile(true);
-        setIsSidebarOpen(false);
-      } else {
-        setIsMobile(false);
-        setIsSidebarOpen(true);
-      }
-    };
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  // 3. 추천 완료 시 핸들러
+  // 2. 추천 완료 시 핸들러
   const handleRecommendation = (newPlaylist) => {
     if (newPlaylist && newPlaylist.length > 0) {
       localStorage.setItem("cloudify_playlist", JSON.stringify(newPlaylist));
@@ -68,7 +50,7 @@ export default function ChatPage() {
 
   if (isAuthLoading) {
     return (
-      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center dark:text-white">
         로딩 중...
       </div>
     );
@@ -76,38 +58,36 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden transition-colors duration-300">
-      {/* Sidebar */}
+      {/* 1. 사이드바 (홈 화면과 동일한 구조 적용) */}
+      <div
+        className={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 ${
+          isSidebarOpen
+            ? "opacity-100 pointer-events-auto"
+            : "opacity-0 pointer-events-none"
+        }`}
+        onClick={() => setIsSidebarOpen(false)}
+      />
+
       <aside
         className={`
-          fixed md:relative z-30 h-full bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-300 ease-in-out
-          ${
-            isSidebarOpen
-              ? "w-64 translate-x-0"
-              : "w-0 -translate-x-full md:w-0 md:translate-x-0 overflow-hidden"
-          }
+          fixed top-0 left-0 z-50 h-full w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 
+          transform transition-transform duration-300 ease-out shadow-2xl
+          ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
         <Sidebar
           session={session}
-          isMobile={isMobile}
-          closeSidebar={() => isMobile && setIsSidebarOpen(false)}
+          closeSidebar={() => setIsSidebarOpen(false)}
         />
       </aside>
 
-      {/* Mobile Overlay */}
-      {isMobile && isSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-20 backdrop-blur-sm"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
-
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col h-full relative w-full">
-        <header className="h-16 flex items-center justify-between px-4 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md sticky top-0 z-10">
+      {/* 2. 메인 컨텐츠 */}
+      <main className="flex-1 flex flex-col h-full w-full relative">
+        {/* 헤더 */}
+        <header className="h-16 flex items-center justify-between px-6 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md z-30">
           <button
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+            onClick={() => setIsSidebarOpen(true)}
+            className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
           >
             <Menu size={24} />
           </button>
@@ -117,8 +97,9 @@ export default function ChatPage() {
           <div className="w-8"></div>
         </header>
 
-        <div className="flex-1 flex overflow-hidden p-4 md:p-6">
-          <div className="w-full max-w-4xl mx-auto h-full">
+        {/* 채팅 바디 */}
+        <div className="flex-1 flex overflow-hidden p-4 md:p-6 justify-center">
+          <div className="w-full max-w-4xl h-full">
             <AiChat session={session} onRecommend={handleRecommendation} />
           </div>
         </div>

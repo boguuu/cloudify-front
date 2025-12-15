@@ -2,177 +2,137 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
   Play,
-  Repeat,
-  Share2,
   Pause,
   SkipBack,
   SkipForward,
+  Volume2,
+  Shuffle,
+  Repeat,
+  Share2,
 } from "lucide-react";
 
-const glassmorphismStyle =
-  "bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 shadow-lg";
-
 export default function MainPlayer(props) {
-  // --- Props 처리 ---
-  const track = props.track || [];
-  const externalIndex =
-    typeof props.currentTrackIndex === "number" ? props.currentTrackIndex : 0;
-  const onNextTrack = props.onNextTrack || (() => {});
-  const onPrevTrack = props.onPrevTrack || (() => {});
-  const albumArt = props.albumArt || null;
-  const geniusData = props.geniusData || null;
+  // Props 처리
+  const track = props.track || props.playlist || [];
+  const currentSongData = props.currentSong || {};
+  const currentVideoId = currentSongData?.videoId || "";
 
-  // --- 내부 UI 상태 관리 (useState) ---
+  // State
+  const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [totalTime, setTotalTime] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isDragging, setIsDragging] = useState(false); // 재생 바를 사용자가 드래그하는지 여부
+  const [volume, setVolume] = useState(50);
+  const [isDragging, setIsDragging] = useState(false);
 
-  // --- Refs ---
-  const playerRef = useRef(null); // 실제 YouTube 플레이어 인스턴스를 저장
-  const animationFrameRef = useRef(null); // requestAnimationFrame의 ID를 저장
-  const lastReportedTimeRef = useRef(0); // 재생 시간 업데이트 최적화를 위한 마지막 시간 저장
+  // 유튜브 제목 저장용 (DB에 제목 없을 때 사용)
+  const [ytTitle, setYtTitle] = useState("");
 
-  // --- 상태 파생 및 동기화 ---
-  // 부모가 관리하는 재생목록/인덱스로부터 현재 videoId를 파생시킵니다.
-  const currentVideoIdDerived =
-    track && track[externalIndex] ? track[externalIndex].videoId : "";
-  const [currentVideoId, setCurrentVideoId] = useState(
-    () => currentVideoIdDerived
-  );
+  const playerRef = useRef(null);
+  const animationRef = useRef(null);
 
-  // 부모가 인덱스나 트랙을 변경했을 때, 내부 videoId 상태를 동기화합니다.
-  useEffect(() => {
-    if (currentVideoIdDerived && currentVideoIdDerived !== currentVideoId) {
-      setCurrentVideoId(currentVideoIdDerived);
-    }
-  }, [currentVideoIdDerived, currentVideoId]);
+  // 1. YouTube API 초기화 및 로드
+  const initPlayer = useCallback(() => {
+    if (!currentVideoId || !window.YT) return;
 
-  // --- YouTube 플레이어 초기화 및 API 로드 ---
-  // YouTube 플레이어 인스턴스를 생성하는 함수. useCallback으로 불필요한 재생성을 방지합니다.
-  const initializePlayer = useCallback(() => {
-    // 플레이어가 이미 생성되었거나, videoId가 없거나, 마운트할 div가 없으면 실행하지 않습니다.
+    // 이미 플레이어가 생성되어 있다면 비디오만 교체
     if (
-      playerRef.current ||
-      !currentVideoId ||
-      !document.getElementById("player")
-    )
+      playerRef.current &&
+      typeof playerRef.current.loadVideoById === "function"
+    ) {
+      playerRef.current.loadVideoById(currentVideoId);
       return;
+    }
 
-    const p = new window.YT.Player("player", {
+    // 새 플레이어 생성
+    playerRef.current = new window.YT.Player("player-iframe", {
       height: "0",
       width: "0",
       videoId: currentVideoId,
       playerVars: {
-        rel: 0,
+        autoplay: 1,
         controls: 0,
-        autoplay: 0,
+        rel: 0,
         playsinline: 1,
         origin: window.location.origin,
-      }, // 자동재생은 로드 후 별도 제어
+      },
       events: {
         onReady: (e) => {
-          // playerRef에 생성된 플레이어 인스턴스를 저장. (useState가 아닌 useRef 사용으로 리렌더링 방지)
-          playerRef.current = e.target;
+          e.target.setVolume(volume);
+          e.target.playVideo();
+          // 영상 정보 가져오기
+          const data = e.target.getVideoData();
+          if (data && data.title) setYtTitle(data.title);
         },
-        onStateChange: (e) => onPlayerStateChange(e), // 상태 변경 시 호출될 함수 연결
+        onStateChange: (e) => {
+          const status = e.data;
+          // 재생 중
+          if (status === window.YT.PlayerState.PLAYING) {
+            setIsPlaying(true);
+            if (props.setIsPlaying) props.setIsPlaying(true);
+            setTotalTime(e.target.getDuration());
+
+            // 제목 재확인
+            const data = e.target.getVideoData();
+            if (data && data.title) setYtTitle(data.title);
+          }
+          // 일시정지
+          else if (status === window.YT.PlayerState.PAUSED) {
+            setIsPlaying(false);
+            if (props.setIsPlaying) props.setIsPlaying(false);
+          }
+          // 끝남 -> 다음 곡
+          else if (status === window.YT.PlayerState.ENDED) {
+            setIsPlaying(false);
+            if (props.setIsPlaying) props.setIsPlaying(false);
+            if (props.onNext) props.onNext();
+          }
+        },
       },
     });
-    playerRef.current = p;
   }, [currentVideoId]);
 
-  // YouTube IFrame API 스크립트를 로드하는 useEffect. 컴포넌트 마운트 시 한 번만 실행되도록 관리합니다.
+  // 2. API 스크립트 로드
   useEffect(() => {
-    // API가 이미 로드되었다면 바로 플레이어를 초기화합니다.
+    if (!window.YT) {
+      const tag = document.createElement("script");
+      tag.src = "https://www.youtube.com/iframe_api";
+      const firstScript = document.getElementsByTagName("script")[0];
+      firstScript.parentNode.insertBefore(tag, firstScript);
+      window.onYouTubeIframeAPIReady = initPlayer;
+    } else {
+      initPlayer();
+    }
+  }, [initPlayer]);
+
+  // 3. 재생 바 업데이트 Loop
+  const updateProgress = useCallback(() => {
+    // 안전장치: getCurrentTime 함수가 있는지 확인
     if (
-      typeof window === "undefined" ||
-      (typeof window.YT !== "undefined" &&
-        typeof window.YT.Player !== "undefined")
+      playerRef.current &&
+      typeof playerRef.current.getCurrentTime === "function" &&
+      !isDragging
     ) {
-      initializePlayer();
-      return;
+      const curr = playerRef.current.getCurrentTime();
+      if (!isNaN(curr)) setCurrentTime(curr);
     }
-    // API 스크립트가 없다면 동적으로 생성하여 페이지에 추가합니다.
-    const tag = document.createElement("script");
-    tag.src = "https://www.youtube.com/iframe_api";
-    const firstScriptTag = document.getElementsByTagName("script")[0];
-    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-
-    // 스크립트 로드가 완료되면 YouTube API가 이 전역 함수를 호출합니다.
-    window.onYouTubeIframeAPIReady = () => initializePlayer();
-
-    // 컴포넌트가 언마운트될 때 정리(cleanup) 함수
-    return () => {
-      if (animationFrameRef.current)
-        cancelAnimationFrame(animationFrameRef.current);
-      window.onYouTubeIframeAPIReady = null;
-    };
-  }, [initializePlayer]);
-
-  // --- 핵심 비디오 제어 로직 ---
-  // currentVideoId가 (부모에 의해) 변경되었고 플레이어가 존재하면, 새 비디오를 로드합니다.
-  useEffect(() => {
-    const p = playerRef.current;
-    if (!p || !currentVideoId) return;
-    if (typeof p.loadVideoById === "function") {
-      try {
-        p.loadVideoById(currentVideoId);
-      } catch (e) {
-        console.warn("loadVideoById 실패:", e);
-      }
-    }
-  }, [currentVideoId]);
-
-  // 플레이어 상태 변경 이벤트 핸들러. (재생, 종료, 일시정지 등)
-  const onPlayerStateChange = (event) => {
-    const p = playerRef.current;
-    if (!p) return;
-
-    if (event.data === window.YT.PlayerState.PLAYING) {
-      setIsPlaying(true);
-      setTotalTime(p.getDuration ? p.getDuration() : 0);
-    } else if (event.data === window.YT.PlayerState.ENDED) {
-      setIsPlaying(false);
-      onNextTrack?.(); // 다음 곡 재생 요청
-    } else if (event.data === window.YT.PlayerState.PAUSED) {
-      setIsPlaying(false);
-    }
-  };
-
-  // --- 재생 바(Progress Bar) 업데이트 로직 ---
-  // requestAnimationFrame을 사용하여 부드럽고 효율적으로 재생 바를 업데이트합니다.
-  const updateProgressBar = useCallback(() => {
-    const p = playerRef.current;
-    if (p && typeof p.getCurrentTime === "function" && !isDragging) {
-      const current = p.getCurrentTime();
-      // 0.25초 이상 차이가 날 때만 상태를 업데이트하여 불필요한 렌더링을 줄입니다 (Throttling).
-      if (Math.abs(current - lastReportedTimeRef.current) > 0.25) {
-        lastReportedTimeRef.current = current;
-        setCurrentTime(current);
-      }
-    }
-    animationFrameRef.current = requestAnimationFrame(updateProgressBar);
+    animationRef.current = requestAnimationFrame(updateProgress);
   }, [isDragging]);
 
-  // isPlaying 상태에 따라 updateProgressBar 애니메이션 루프를 시작하거나 중지합니다.
   useEffect(() => {
     if (isPlaying) {
-      animationFrameRef.current = requestAnimationFrame(updateProgressBar);
+      animationRef.current = requestAnimationFrame(updateProgress);
     } else {
-      if (animationFrameRef.current)
-        cancelAnimationFrame(animationFrameRef.current);
+      cancelAnimationFrame(animationRef.current);
     }
-    return () => {
-      if (animationFrameRef.current)
-        cancelAnimationFrame(animationFrameRef.current);
-    };
-  }, [isPlaying, updateProgressBar]);
+    return () => cancelAnimationFrame(animationRef.current);
+  }, [isPlaying, updateProgress]);
 
-  // --- 사용자 컨트롤 함수 ---
-  // 재생/일시정지 버튼 클릭 핸들러
-  const togglePlayPause = () => {
+  // 4. 핸들러 함수들
+  const togglePlay = () => {
+    if (!playerRef.current) return;
     const p = playerRef.current;
-    if (!p) return;
+
+    // 안전장치: 함수 존재 여부 확인 후 실행
     if (isPlaying) {
       if (typeof p.pauseVideo === "function") p.pauseVideo();
     } else {
@@ -180,127 +140,168 @@ export default function MainPlayer(props) {
     }
   };
 
-  // 다음/이전 버튼 클릭 시, 부모에게 상태 변경을 요청
-  const playNextTrackLocal = () => onNextTrack();
-  const playPrevTrackLocal = () => onPrevTrack();
-
-  // 재생 바를 직접 클릭하거나 드래그하여 탐색하는 핸들러
   const handleSeek = (e) => {
-    const p = playerRef.current;
-    if (!p || !p.seekTo) return;
-    const percent = Number(e.target.value);
-    const newTime = (percent / 100) * totalTime;
-    setCurrentTime(newTime); // UI 즉시 업데이트
-    p.seekTo(newTime, true); // 플레이어 실제 시간 이동
+    const val = Number(e.target.value);
+    const newTime = (val / 100) * totalTime;
+    setCurrentTime(newTime);
+
+    if (playerRef.current && typeof playerRef.current.seekTo === "function") {
+      playerRef.current.seekTo(newTime, true);
+    }
   };
 
-  // 재생 바 드래그 시작/종료 핸들러
-  const handleMouseDown = () => setIsDragging(true);
-  const handleMouseUp = () => setIsDragging(false);
+  const handleVolume = (e) => {
+    const val = Number(e.target.value);
+    setVolume(val);
 
-  // 초(seconds)를 mm:ss 형식의 문자열로 변환
-  const formatTime = (sec) => {
-    if (!sec || isNaN(sec)) return "0:00";
-    const m = Math.floor(sec / 60);
-    const s = Math.floor(sec % 60)
+    if (
+      playerRef.current &&
+      typeof playerRef.current.setVolume === "function"
+    ) {
+      playerRef.current.setVolume(val);
+    }
+  };
+
+  const formatTime = (s) => {
+    if (!s || isNaN(s)) return "0:00";
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60)
       .toString()
       .padStart(2, "0");
-    return `${m}:${s}`;
+    return `${m}:${sec}`;
   };
 
-  // --- 표시값: Genius > DB(oEmbed) > 폴백 ---
-  const progressPercent = totalTime > 0 ? (currentTime / totalTime) * 100 : 0;
-  const ytThumb = currentVideoId
-    ? `https://i.ytimg.com/vi/${currentVideoId}/hqdefault.jpg`
-    : undefined;
-  const dbTitle = track[externalIndex]?.title || "";
-  const dbArtist = track[externalIndex]?.artist || "";
-  const displayAlbumArt = geniusData?.albumArt || albumArt || ytThumb;
-  const displayTitle = geniusData?.songTitle || dbTitle || "Loading...";
-  const displayArtist = geniusData?.artistName || dbArtist || "";
+  // 5. 렌더링 데이터 준비
+  const percent = totalTime > 0 ? (currentTime / totalTime) * 100 : 0;
+
+  // 제목: DB제목 -> 유튜브제목 -> 기본값
+  // "Track "으로 시작하면 임시 제목이므로 유튜브 제목(ytTitle)을 우선 사용
+  const displayTitle =
+    currentSongData.title && !currentSongData.title.startsWith("Track ")
+      ? currentSongData.title
+      : ytTitle || currentSongData.title || "Loading Title...";
+
+  const displayArtist = currentSongData.artist || "Unknown Artist";
+
+  // 썸네일: hqdefault 사용 (가장 안전함)
+  const displayCover =
+    currentSongData.cover ||
+    `https://i.ytimg.com/vi/${currentVideoId}/hqdefault.jpg`;
 
   return (
-    <main
-      className={`${glassmorphismStyle} p-8 flex-1 flex flex-col items-center justify-center text-white/90`}
-    >
-      <div id="player" style={{ display: "none" }}></div>
-
-      <div className="w-52 h-52 rounded-lg shadow-2xl overflow-hidden mb-6">
-        {displayAlbumArt ? (
+    <div className="w-full h-full flex items-center justify-between px-6 bg-white/95 dark:bg-slate-900/95 backdrop-blur border-t border-slate-200 dark:border-slate-800 transition-all duration-300">
+      {/* Left: Info */}
+      <div className="flex items-center gap-4 w-1/3 min-w-0">
+        <div className="w-14 h-14 rounded-lg overflow-hidden bg-slate-200 shadow-md flex-shrink-0">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={displayAlbumArt}
-            alt={displayTitle}
-            className="w-full h-full object-cover bg-gray-800"
+            src={displayCover}
+            alt="art"
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              e.target.style.display = "none";
+            }}
           />
-        ) : (
-          <div className="w-full h-full bg-gray-800" />
-        )}
+        </div>
+        <div className="min-w-0 flex flex-col justify-center">
+          <p
+            className="font-bold text-sm text-slate-900 dark:text-white truncate cursor-default"
+            title={displayTitle}
+          >
+            {displayTitle}
+          </p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 truncate cursor-default">
+            {displayArtist}
+          </p>
+        </div>
       </div>
 
-      <h2 className="text-3xl font-bold">{displayTitle}</h2>
-      <p className="text-white/60 mb-6">{displayArtist || "..."}</p>
+      {/* Center: Controls */}
+      <div className="flex flex-col items-center justify-center w-1/3 gap-1">
+        <div className="flex items-center gap-6">
+          <button className="text-slate-400 hover:text-brand-500 hidden md:block transition">
+            <Shuffle size={18} />
+          </button>
 
-      <div className="w-full max-w-md mb-4 mt-2">
-        <div className="h-1.5 bg-white/20 rounded-full relative group">
+          <button
+            onClick={props.onPrev}
+            className="text-slate-700 dark:text-slate-200 hover:scale-110 transition"
+          >
+            <SkipBack size={24} fill="currentColor" />
+          </button>
+
+          <button
+            onClick={togglePlay}
+            className="w-10 h-10 bg-brand-600 hover:bg-brand-700 text-white rounded-full flex items-center justify-center hover:scale-105 shadow-lg transition active:scale-95"
+          >
+            {isPlaying ? (
+              <Pause size={20} fill="currentColor" />
+            ) : (
+              <Play size={20} fill="currentColor" className="ml-1" />
+            )}
+          </button>
+
+          <button
+            onClick={props.onNext}
+            className="text-slate-700 dark:text-slate-200 hover:scale-110 transition"
+          >
+            <SkipForward size={24} fill="currentColor" />
+          </button>
+
+          <button className="text-slate-400 hover:text-brand-500 hidden md:block transition">
+            <Repeat size={18} />
+          </button>
+        </div>
+
+        <div className="w-full max-w-md flex items-center gap-2 text-xs text-slate-400 select-none">
+          <span className="w-8 text-right">{formatTime(currentTime)}</span>
+          <div className="flex-1 h-1 bg-slate-200 dark:bg-slate-700 rounded-full relative group cursor-pointer">
+            <div
+              className="absolute h-full bg-brand-500 rounded-full"
+              style={{ width: `${percent}%` }}
+            ></div>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={percent || 0}
+              onChange={handleSeek}
+              onMouseDown={() => setIsDragging(true)}
+              onMouseUp={() => setIsDragging(false)}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            />
+          </div>
+          <span className="w-8">{formatTime(totalTime)}</span>
+        </div>
+      </div>
+
+      {/* Right: Volume */}
+      <div className="flex items-center justify-end w-1/3 gap-3 hidden md:flex">
+        <Volume2 size={20} className="text-slate-500 dark:text-slate-400" />
+        <div className="w-24 h-1 bg-slate-200 dark:bg-slate-700 rounded-full relative cursor-pointer group">
           <div
-            className={`h-1.5 rounded-full ${
-              isDragging ? "bg-blue-500" : "bg-white/80"
-            }`}
-            style={{ width: `${progressPercent}%` }}
+            className="absolute h-full bg-slate-500 dark:bg-slate-400 group-hover:bg-brand-500 rounded-full"
+            style={{ width: `${volume}%` }}
           ></div>
           <input
             type="range"
             min="0"
             max="100"
-            step="0.1"
-            value={progressPercent}
-            onChange={handleSeek}
-            onMouseDown={handleMouseDown}
-            onMouseUp={handleMouseUp}
-            onTouchStart={handleMouseDown}
-            onTouchEnd={handleMouseUp}
-            className="absolute top-1/2 left-0 w-full h-full -translate-y-1/2 bg-transparent appearance-none cursor-pointer"
-            style={{ WebkitAppearance: "none" }}
+            value={volume}
+            onChange={handleVolume}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
           />
         </div>
-        <div className="flex justify-between text-xs text-white/50 mt-1">
-          <span>{formatTime(currentTime)}</span>
-          <span>{formatTime(totalTime)}</span>
-        </div>
+        <button
+          title="공유"
+          className="ml-2 text-slate-400 hover:text-slate-900 dark:hover:text-white transition"
+        >
+          <Share2 size={18} />
+        </button>
       </div>
 
-      <div className="flex items-center space-x-8">
-        {/* 동작이 없다면 Share/Repeat 버튼은 제거해도 됩니다 */}
-        <button className="absolute right-8 text-white/70 hover:text-white transition-colors">
-          <Share2 size={20} />
-        </button>
-        <button
-          onClick={playPrevTrackLocal}
-          className="text-white/70 hover:text-white transition-colors"
-        >
-          <SkipBack size={20} />
-        </button>
-        <button
-          aria-label="play/pause"
-          onClick={togglePlayPause}
-          className="m-0 w-16 h-16 bg-white/90 text-slate-800 rounded-full flex items-center justify-center shadow-lg hover:bg-white transition-transform transform hover:scale-105"
-        >
-          {isPlaying ? (
-            <Pause size={28} />
-          ) : (
-            <Play size={28} className="ml-1" />
-          )}
-        </button>
-        <button
-          onClick={playNextTrackLocal}
-          className="text-white/70 hover:text-white transition-colors"
-        >
-          <SkipForward size={20} />
-        </button>
-        <button className="text-white/70 hover:text-white transition-colors">
-          <Repeat size={20} />
-        </button>
-      </div>
-    </main>
+      {/* Hidden YouTube Iframe */}
+      <div id="player-iframe" className="hidden"></div>
+    </div>
   );
 }

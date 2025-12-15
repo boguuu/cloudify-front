@@ -30,36 +30,48 @@ export default function AiChat({ session, onRecommend }) {
     setInput("");
     setIsLoading(true);
 
-    // [시뮬레이션 로직]
-    setTimeout(() => {
-      const mockPlaylist = [
-        {
-          _id: "1",
-          videoId: "UaGBz_Y_iUI",
-          title: "밤편지",
-          artist: "아이유 (IU)",
-        },
-        { _id: "2", videoId: "0s1pneO-p3Y", title: "위로", artist: "권진아" },
-        {
-          _id: "3",
-          videoId: "D4fbh_s_i50",
-          title: "그대라는 사치",
-          artist: "한동근",
-        },
-      ];
+    try {
+      // 1. [실제 연동] DB에서 노래 가져오기
+      const res = await fetch("/api/songs");
+      if (!res.ok) throw new Error("데이터 불러오기 실패");
 
+      const allSongs = await res.json();
+
+      // 2. 노래 섞기 (갯수 제한 없음: 전체 리스트 사용)
+      let recommendedSongs = [];
+      if (allSongs && allSongs.length > 0) {
+        recommendedSongs = [...allSongs].sort(() => 0.5 - Math.random());
+      }
+
+      setTimeout(() => {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content:
+              recommendedSongs.length > 0
+                ? `전체 ${recommendedSongs.length}곡을 플레이리스트에 담았습니다! 홈 화면으로 이동합니다.`
+                : "죄송해요, 추천할 만한 노래를 찾지 못했어요. (DB 데이터를 확인해주세요)",
+          },
+        ]);
+
+        // 3. 전체 노래 전달 -> 홈 이동
+        if (recommendedSongs.length > 0) {
+          onRecommend(recommendedSongs);
+        }
+        setIsLoading(false);
+      }, 1500);
+    } catch (error) {
+      console.error(error);
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content:
-            "이야기를 들어보니 차분한 위로가 필요하신 것 같아요. 이 노래들을 들어보세요.",
+          content: "오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
         },
       ]);
-
-      onRecommend(mockPlaylist);
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   return (
