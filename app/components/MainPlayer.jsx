@@ -106,7 +106,6 @@ export default function MainPlayer(props) {
 
   // 3. 재생 바 업데이트 Loop
   const updateProgress = useCallback(() => {
-    // 안전장치: getCurrentTime 함수가 있는지 확인
     if (
       playerRef.current &&
       typeof playerRef.current.getCurrentTime === "function" &&

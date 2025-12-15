@@ -10,14 +10,11 @@ import AiChat from "./AiChat";
 export default function ChatPage() {
   const router = useRouter();
 
-  // 인증 및 세션 상태
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [session, setSession] = useState(null);
 
-  // UI 상태 (초기값: 닫힘)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // 1. 인증 체크
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -40,7 +37,6 @@ export default function ChatPage() {
     checkAuth();
   }, [router]);
 
-  // 2. 추천 완료 시 핸들러
   const handleRecommendation = (newPlaylist) => {
     if (newPlaylist && newPlaylist.length > 0) {
       localStorage.setItem("cloudify_playlist", JSON.stringify(newPlaylist));
@@ -58,7 +54,7 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden transition-colors duration-300">
-      {/* 1. 사이드바 (홈 화면과 동일한 구조 적용) */}
+      {/* 1. 사이드바 */}
       <div
         className={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 ${
           isSidebarOpen

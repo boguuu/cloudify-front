@@ -2,9 +2,11 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Send, Sparkles } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function AiChat({ session, onRecommend }) {
   const chatEndRef = useRef(null);
+  const router = useRouter();
 
   const [messages, setMessages] = useState([
     {
@@ -31,44 +33,99 @@ export default function AiChat({ session, onRecommend }) {
     setIsLoading(true);
 
     try {
-      // 1. [실제 연동] DB에서 노래 가져오기
-      const res = await fetch("/api/songs");
-      if (!res.ok) throw new Error("데이터 불러오기 실패");
+      console.log("🚀 백엔드로 요청 보냄:", { text: userMessage });
 
-      const allSongs = await res.json();
+      const res = await fetch(
+        "https://api.cloudify.lol/api/recommend/by-text",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include", // 쿠키 인증 필수
+          body: JSON.stringify({ text: userMessage }),
+        }
+      );
 
-      // 2. 노래 섞기 (갯수 제한 없음: 전체 리스트 사용)
-      let recommendedSongs = [];
-      if (allSongs && allSongs.length > 0) {
-        recommendedSongs = [...allSongs].sort(() => 0.5 - Math.random());
+      if (!res.ok) {
+        let errorDetail = "";
+        try {
+          const errorJson = await res.json();
+          console.error("🔥 서버 에러 응답(JSON):", errorJson);
+          errorDetail = errorJson.message || JSON.stringify(errorJson);
+        } catch (parseError) {
+          const errorText = await res.text();
+          console.error("🔥 서버 에러 응답(Text):", errorText);
+          errorDetail = errorText.slice(0, 50);
+        }
+
+        if (res.status === 401) {
+          throw new Error("로그인이 만료되었습니다.");
+        } else if (res.status === 500) {
+          throw new Error(`서버 내부 오류(500): ${errorDetail}`);
+        } else {
+          throw new Error(`요청 실패(${res.status}): ${errorDetail}`);
+        }
       }
 
-      setTimeout(() => {
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: "assistant",
-            content:
-              recommendedSongs.length > 0
-                ? `전체 ${recommendedSongs.length}곡을 플레이리스트에 담았습니다! 홈 화면으로 이동합니다.`
-                : "죄송해요, 추천할 만한 노래를 찾지 못했어요. (DB 데이터를 확인해주세요)",
-          },
-        ]);
+      const responseData = await res.json();
+      console.log("✅ 백엔드 추천 성공:", responseData);
 
-        // 3. 전체 노래 전달 -> 홈 이동
+      const rawList = Array.isArray(responseData)
+        ? responseData
+        : responseData.data || [];
+
+      const recommendedSongs = rawList.map((item, index) => {
+        return {
+          _id: item.videoId || `rec-${index}`,
+          videoId: item.videoId,
+          title: item.title || "Unknown Title",
+          artist: item.artist || "Unknown Artist",
+          cover:
+            item.songImageUrl ||
+            `https://i.ytimg.com/vi/${item.videoId}/hqdefault.jpg`,
+        };
+      });
+
+      // 5. 결과 처리
+      setTimeout(() => {
         if (recommendedSongs.length > 0) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "assistant",
+              content: `분석 완료! ${recommendedSongs.length}곡을 추천해 드렸습니다. 플레이리스트에 담아드릴게요! 🎧`,
+            },
+          ]);
           onRecommend(recommendedSongs);
+        } else {
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "assistant",
+              content: "추천 결과가 비어있어요. 다른 주제로 이야기해 볼까요?",
+            },
+          ]);
         }
         setIsLoading(false);
-      }, 1500);
+      }, 1000);
     } catch (error) {
-      console.error(error);
+      console.error("❌ 추천 시스템 최종 에러:", error);
+
+      let userDisplayMessage =
+        "오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
+
+      if (error.message.includes("로그인")) {
+        userDisplayMessage = "로그인이 필요합니다. 로그인 페이지로 이동합니다.";
+        setTimeout(() => router.replace("/login"), 2000);
+      } else if (error.message.includes("500")) {
+        userDisplayMessage =
+          "서버가 응답하지 않습니다. (500 에러) 백엔드 로그를 확인해주세요.";
+      }
+
       setMessages((prev) => [
         ...prev,
-        {
-          role: "assistant",
-          content: "오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
-        },
+        { role: "assistant", content: userDisplayMessage },
       ]);
       setIsLoading(false);
     }
@@ -92,7 +149,7 @@ export default function AiChat({ session, onRecommend }) {
       </div>
 
       {/* Body */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
         {messages.map((msg, idx) => (
           <div
             key={idx}
@@ -133,8 +190,8 @@ export default function AiChat({ session, onRecommend }) {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="메시지를 입력하세요..."
-            className="w-full pl-5 pr-12 py-3.5 rounded-full bg-slate-100 dark:bg-slate-800 border-none focus:ring-2 focus:ring-brand-500 text-slate-900 dark:text-white placeholder-slate-400 transition-all"
+            placeholder="오늘 기분을 이야기해주세요..."
+            className="w-full pl-5 pr-12 py-3.5 rounded-full bg-slate-100 dark:bg-slate-800 border-none focus:ring-2 focus:ring-brand-500 text-slate-900 dark:text-white placeholder-slate-400 transition-all outline-none"
             disabled={isLoading}
           />
           <button
