@@ -22,7 +22,7 @@ export default function MainPlayer(props) {
   const [volume, setVolume] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
 
-  // 유튜브 제목 저장용 (DB에 제목 없을 때 사용)
+  //(DB에 제목 없을 때 사용)
   const [ytTitle, setYtTitle] = useState("");
 
   const playerRef = useRef(null);
@@ -54,31 +54,38 @@ export default function MainPlayer(props) {
       },
       events: {
         onReady: (e) => {
-          e.target.setVolume(volume);
-          e.target.playVideo();
-          // 영상 정보 가져오기
-          const data = e.target.getVideoData();
-          if (data && data.title) setYtTitle(data.title);
-        },
-        onStateChange: (e) => {
-          const status = e.data;
-          // 재생 중
-          if (status === window.YT.PlayerState.PLAYING) {
-            setIsPlaying(true);
-            if (props.setIsPlaying) props.setIsPlaying(true);
-            setTotalTime(e.target.getDuration());
-
-            // 제목 재확인
+          // 안전하게 함수 존재 여부 확인 후 호출
+          if (typeof e.target.setVolume === "function") {
+            e.target.setVolume(volume);
+          }
+          if (typeof e.target.playVideo === "function") {
+            e.target.playVideo();
+          }
+          if (typeof e.target.getVideoData === "function") {
             const data = e.target.getVideoData();
             if (data && data.title) setYtTitle(data.title);
           }
-          // 일시정지
-          else if (status === window.YT.PlayerState.PAUSED) {
+        },
+        onStateChange: (e) => {
+          const status = e.data;
+          const player = e.target;
+
+          if (status === window.YT.PlayerState.PLAYING) {
+            setIsPlaying(true);
+            if (props.setIsPlaying) props.setIsPlaying(true);
+
+            if (player && typeof player.getDuration === "function") {
+              setTotalTime(player.getDuration());
+            }
+
+            if (player && typeof player.getVideoData === "function") {
+              const data = player.getVideoData();
+              if (data && data.title) setYtTitle(data.title);
+            }
+          } else if (status === window.YT.PlayerState.PAUSED) {
             setIsPlaying(false);
             if (props.setIsPlaying) props.setIsPlaying(false);
-          }
-          // 끝남 -> 다음 곡
-          else if (status === window.YT.PlayerState.ENDED) {
+          } else if (status === window.YT.PlayerState.ENDED) {
             setIsPlaying(false);
             if (props.setIsPlaying) props.setIsPlaying(false);
             if (props.onNext) props.onNext();
@@ -166,7 +173,7 @@ export default function MainPlayer(props) {
 
   const percent = totalTime > 0 ? (currentTime / totalTime) * 100 : 0;
 
-  // 제목: DB제목 -> 유튜브제목 -> 기본값
+  // DB제목 -> 유튜브제목 -> 기본값
   const displayTitle =
     currentSongData.title && !currentSongData.title.startsWith("Track ")
       ? currentSongData.title
@@ -174,7 +181,7 @@ export default function MainPlayer(props) {
 
   const displayArtist = currentSongData.artist || "Unknown Artist";
 
-  // 썸네일: hqdefault 사용 (가장 안전함)
+  // 썸네일: hqdefault 사용
   const displayCover =
     currentSongData.cover ||
     `https://i.ytimg.com/vi/${currentVideoId}/hqdefault.jpg`;
@@ -184,7 +191,6 @@ export default function MainPlayer(props) {
       {/* Left: Info */}
       <div className="flex items-center gap-4 w-1/3 min-w-0">
         <div className="w-14 h-14 rounded-lg overflow-hidden bg-slate-200 shadow-md flex-shrink-0">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={displayCover}
             alt="art"

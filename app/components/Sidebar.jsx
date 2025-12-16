@@ -62,7 +62,6 @@ export default function Sidebar({ session }) {
 
       {/* 하단 유저 영역 */}
       <div className="mt-auto flex flex-col gap-3 items-center w-full px-4 mb-20">
-        {/* 유저 프로필 */}
         {session?.userId && (
           <div className="flex items-center gap-2 p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs text-slate-500 dark:text-slate-400 w-full justify-center overflow-hidden">
             <User size={16} className="flex-shrink-0" />

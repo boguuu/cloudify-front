@@ -16,7 +16,19 @@ const nextConfig = {
       },
       {
         protocol: "https",
-        hostname: "lh3.googleusercontent.com", // Google 프로필 이미지용
+        hostname: "img.youtube.com",
+      },
+      {
+        protocol: "https",
+        hostname: "assets.genius.com",
+      },
+      {
+        protocol: "https",
+        hostname: "images.genius.com",
+      },
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
       },
     ],
   },

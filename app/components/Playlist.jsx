@@ -22,11 +22,9 @@ export default function Playlist({ songs, currentSong, onSongSelect }) {
 
       <div className="flex-1 p-2 space-y-1">
         {songs.map((song, index) => {
-          // 현재 재생 중인지 확인
           const isCurrent =
             currentSong && song.videoId && currentSong.videoId === song.videoId;
 
-          // 썸네일 안전한 hqdefault 사용
           const coverUrl =
             song.cover ||
             `https://i.ytimg.com/vi/${song.videoId}/hqdefault.jpg`;
@@ -64,7 +62,6 @@ export default function Playlist({ songs, currentSong, onSongSelect }) {
 
                 {/* 썸네일 이미지 */}
                 <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-slate-200 dark:bg-slate-800">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={coverUrl}
                     alt={song.title || "thumbnail"}
