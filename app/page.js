@@ -11,14 +11,23 @@ export default function Home() {
 
   useEffect(() => {
     const checkAuth = async () => {
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Request timeout")), 5000)
+      );
+
       try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`,
-          {
-            method: "GET",
-            credentials: "include", // 쿠키
-          }
-        );
+        const res = await Promise.race([
+          fetch(
+            `${
+              process.env.NEXT_PUBLIC_API_URL || "https://api.cloudify.lol"
+            }/api/auth/me`,
+            {
+              method: "GET",
+              credentials: "include", // 쿠키 포함 필수
+            }
+          ),
+          timeoutPromise,
+        ]);
 
         if (res.ok) {
           const data = await res.json();
@@ -28,7 +37,7 @@ export default function Home() {
           setIsLoggedIn(false);
         }
       } catch (error) {
-        console.error("Auth check error:", error);
+        console.warn("Auth check failed or timed out:", error);
         setIsLoggedIn(false);
       } finally {
         setIsLoading(false);
@@ -43,7 +52,9 @@ export default function Home() {
       <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-white">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600 dark:border-brand-400 mb-4"></div>
-          <p className="animate-pulse">Loading Cloudify...</p>
+          <p className="animate-pulse text-sm text-slate-500">
+            Connecting to Cloudify...
+          </p>
         </div>
       </div>
     );
