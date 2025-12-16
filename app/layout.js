@@ -16,6 +16,8 @@ const geistMono = localFont({
 export const metadata = {
   title: "Cloudify",
   description: "대화형 음악 추천 서비스",
+  images: [{ url: "/og-image.png" }],
+  type: "website",
 };
 
 export default function RootLayout({ children }) {

@@ -1,7 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { Home, MessageCircle, Music, User, LogOut, Unplug } from "lucide-react";
+import {
+  Home,
+  MessageCircle,
+  Music,
+  User,
+  LogOut,
+  Unplug,
+  Cloud,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function Sidebar({ session }) {
@@ -39,7 +47,7 @@ export default function Sidebar({ session }) {
     <div className="w-full h-full flex flex-col items-center py-6 bg-white dark:bg-slate-900 overflow-hidden">
       {/* 로고 영역 */}
       <div className="mb-8 p-3 bg-brand-100 dark:bg-white/10 rounded-full flex-shrink-0">
-        <Music size={32} className="text-brand-600 dark:text-white" />
+        <Cloud size={32} className="text-brand-600 dark:text-white" />
       </div>
 
       {/* 네비게이션 메뉴 */}

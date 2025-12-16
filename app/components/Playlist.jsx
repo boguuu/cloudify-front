@@ -13,7 +13,6 @@ export default function Playlist({ songs, currentSong, onSongSelect }) {
 
   return (
     <div className="flex flex-col w-full h-full bg-white dark:bg-slate-950">
-      {/* 헤더: 버튼 삭제됨 */}
       <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur z-10 flex justify-between items-center">
         <h3 className="font-bold text-lg text-slate-800 dark:text-white">
           재생 목록{" "}

@@ -36,7 +36,7 @@ export default function AiChat({ session, onRecommend }) {
       console.log("🚀 백엔드로 요청 보냄:", { text: userMessage });
 
       const res = await fetch(
-        "https://api.cloudify.lol/api/recommend/by-text",
+        `${process.env.NEXT_PUBLIC_API_URL}/api/recommend/by-text`,
         {
           method: "POST",
           headers: {
@@ -169,10 +169,12 @@ export default function AiChat({ session, onRecommend }) {
         ))}
         {isLoading && (
           <div className="flex justify-start animate-fade-in">
-            <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl rounded-bl-none border border-slate-200 dark:border-slate-700 shadow-sm flex gap-2 items-center">
-              <span className="w-2 h-2 bg-brand-400 rounded-full animate-bounce"></span>
-              <span className="w-2 h-2 bg-brand-400 rounded-full animate-bounce delay-75"></span>
-              <span className="w-2 h-2 bg-brand-400 rounded-full animate-bounce delay-150"></span>
+            <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl rounded-bl-none border border-slate-200 dark:border-slate-700 shadow-sm flex items-center gap-3">
+              <div className="flex gap-1.5">
+                <span className="w-2 h-2 bg-brand-500 rounded-full animate-[bounce_1s_infinite]"></span>
+                <span className="w-2 h-2 bg-brand-500 rounded-full animate-[bounce_1s_infinite_200ms]"></span>
+                <span className="w-2 h-2 bg-brand-500 rounded-full animate-[bounce_1s_infinite_400ms]"></span>
+              </div>
             </div>
           </div>
         )}

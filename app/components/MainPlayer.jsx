@@ -28,7 +28,6 @@ export default function MainPlayer(props) {
   const playerRef = useRef(null);
   const animationRef = useRef(null);
 
-  // 1. YouTube API 초기화 및 로드
   const initPlayer = useCallback(() => {
     if (!currentVideoId || !window.YT) return;
 
@@ -89,7 +88,6 @@ export default function MainPlayer(props) {
     });
   }, [currentVideoId]);
 
-  // 2. API 스크립트 로드
   useEffect(() => {
     if (!window.YT) {
       const tag = document.createElement("script");
@@ -102,7 +100,6 @@ export default function MainPlayer(props) {
     }
   }, [initPlayer]);
 
-  // 3. 재생 바 업데이트 Loop
   const updateProgress = useCallback(() => {
     if (
       playerRef.current &&
@@ -124,7 +121,6 @@ export default function MainPlayer(props) {
     return () => cancelAnimationFrame(animationRef.current);
   }, [isPlaying, updateProgress]);
 
-  // 4. 핸들러 함수들
   const togglePlay = () => {
     if (!playerRef.current) return;
     const p = playerRef.current;
@@ -168,11 +164,9 @@ export default function MainPlayer(props) {
     return `${m}:${sec}`;
   };
 
-  // 5. 렌더링 데이터 준비
   const percent = totalTime > 0 ? (currentTime / totalTime) * 100 : 0;
 
   // 제목: DB제목 -> 유튜브제목 -> 기본값
-  // "Track "으로 시작하면 임시 제목이므로 유튜브 제목(ytTitle)을 우선 사용
   const displayTitle =
     currentSongData.title && !currentSongData.title.startsWith("Track ")
       ? currentSongData.title

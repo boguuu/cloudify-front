@@ -2,12 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { Menu, Music, PlayCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 import Sidebar from "../components/Sidebar";
 import MainPlayer from "../components/MainPlayer";
 import Playlist from "../components/Playlist";
 
 export default function HomePage({ session }) {
+  const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -17,7 +20,7 @@ export default function HomePage({ session }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // 로컬 스토리지 확인
+    // 스토리지 확인
     const savedPlaylist = localStorage.getItem("cloudify_playlist");
 
     if (savedPlaylist) {
@@ -130,16 +133,20 @@ export default function HomePage({ session }) {
               {/* 왼쪽: 앨범 아트 */}
               <div className="hidden lg:flex flex-1 items-center justify-center bg-slate-100 dark:bg-slate-900/50 p-10">
                 <div className="relative aspect-square w-full max-w-[500px] rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 bg-black">
-                  {/* 이미지 404 방지 처리 */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={currentCover}
-                    alt="Album Art"
-                    className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
-                    onError={(e) => {
-                      e.target.style.display = "none";
-                    }}
-                  />
+                  {currentCover ? (
+                    <Image
+                      src={currentCover}
+                      alt="Album Art"
+                      width={500}
+                      height={500}
+                      className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+                      priority={true} // LCP 최적화
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-slate-800 flex items-center justify-center text-slate-500">
+                      No Image
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -166,7 +173,7 @@ export default function HomePage({ session }) {
                 </p>
                 <p>AI 채팅에서 기분에 맞는 노래를 추천받아보세요!</p>
                 <button
-                  onClick={() => (window.location.href = "/chating")}
+                  onClick={() => router.push("/chating")}
                   className="mt-3 ml-20 flex items-center gap-2 px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-full font-bold transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1"
                 >
                   <PlayCircle size={20} />
@@ -177,7 +184,7 @@ export default function HomePage({ session }) {
           )}
         </div>
 
-        {/* 3. 하단 플레이어 */}
+        {/*하단 플레이어 */}
         {currentSong && (
           <div className="absolute bottom-0 left-0 right-0 h-24 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.3)] bg-white dark:bg-slate-900">
             <MainPlayer

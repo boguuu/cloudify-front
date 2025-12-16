@@ -10,7 +10,6 @@ const dev = true;
 const app = next({ dev });
 const handle = app.getRequestHandler();
 
-// nonmodule에서 쓰던 인증서 경로와 동일하게 맞춤
 const httpsOptions = {
   key: readFileSync("./certs/dev.cloudify.lol-key.pem"),
   cert: readFileSync("./certs/dev.cloudify.lol.pem"),
