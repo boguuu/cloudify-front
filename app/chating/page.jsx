@@ -88,7 +88,7 @@ export default function ChatPage() {
             <Menu size={24} />
           </button>
           <div className="font-semibold text-lg text-brand-600 dark:text-brand-400">
-            AI Chat
+            Cloudify
           </div>
           <div className="w-8"></div>
         </header>

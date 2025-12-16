@@ -42,7 +42,7 @@ export default function AiChat({ session, onRecommend }) {
           headers: {
             "Content-Type": "application/json",
           },
-          credentials: "include", // 쿠키 인증 필수
+          credentials: "include", // 쿠키 인증
           body: JSON.stringify({ text: userMessage }),
         }
       );
@@ -87,7 +87,6 @@ export default function AiChat({ session, onRecommend }) {
         };
       });
 
-      // 5. 결과 처리
       setTimeout(() => {
         if (recommendedSongs.length > 0) {
           setMessages((prev) => [

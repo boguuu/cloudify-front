@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 export default function Sidebar({ session }) {
   const router = useRouter();
 
-  // 로그아웃
   const handleLogout = async () => {
     try {
       await fetch("https://api.cloudify.lol/api/auth/logout", {
@@ -21,7 +20,6 @@ export default function Sidebar({ session }) {
     }
   };
 
-  // 연동 해제
   const handleDisconnect = async () => {
     if (!confirm("정말 구글 계정 연동을 해제하시겠습니까?")) return;
     try {

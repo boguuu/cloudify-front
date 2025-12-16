@@ -12,12 +12,10 @@ import {
 } from "lucide-react";
 
 export default function MainPlayer(props) {
-  // Props 처리
   const track = props.track || props.playlist || [];
   const currentSongData = props.currentSong || {};
   const currentVideoId = currentSongData?.videoId || "";
 
-  // State
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [totalTime, setTotalTime] = useState(0);

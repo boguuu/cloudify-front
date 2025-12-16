@@ -1,4 +1,4 @@
-# Cloudy Proto Main
+# Cloudify Main
 
 This is a Next.js project.
 

@@ -53,7 +53,7 @@ export default function LoginPage() {
             <div className="flex flex-col items-center p-3 bg-brand-50 dark:bg-slate-800 rounded-xl">
               <Music className="text-brand-500 mb-2" size={20} />
               <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
-                YouTube 재생
+                음악 재생
               </span>
             </div>
           </div>

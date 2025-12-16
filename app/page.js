@@ -2,8 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import MusicPlayerClient from "@/app/components/MusicPlayerClient";
-import LoginPage from "@/app/login/LoginPage";
+import LoginPage from "@/app/login/page";
 import HomePage from "@/app/homepage/HomePage";
 
 export default function Home() {
@@ -77,12 +76,12 @@ export default function Home() {
       case "home":
         // session prop에 백엔드에서 받아온 userData를 전달
         return <HomePage onSearch={handleSearch} session={userData} />;
-      case "player":
-        return (
-          <div className="w-full max-w-6xl h-[600px] flex gap-4 text-white">
-            <MusicPlayerClient initialPlaylist={playlist} />
-          </div>
-        );
+      // case "player":
+      //   return (
+      //     <div className="w-full max-w-6xl h-[600px] flex gap-4 text-white">
+      //       <MusicPlayerClient initialPlaylist={playlist} />
+      //     </div>
+      //   );
       case "loading":
       default:
         return (

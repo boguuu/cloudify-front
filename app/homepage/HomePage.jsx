@@ -8,17 +8,14 @@ import MainPlayer from "../components/MainPlayer";
 import Playlist from "../components/Playlist";
 
 export default function HomePage({ session }) {
-  // UI 상태
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  // 데이터 상태
   const [playlist, setPlaylist] = useState([]);
   const [currentSong, setCurrentSong] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 1. 데이터 불러오기 (오직 채팅 추천 결과만 사용)
   useEffect(() => {
     // 로컬 스토리지 확인
     const savedPlaylist = localStorage.getItem("cloudify_playlist");
@@ -39,7 +36,6 @@ export default function HomePage({ session }) {
     setIsLoading(false);
   }, []);
 
-  // 2. 반응형 처리
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
@@ -83,7 +79,7 @@ export default function HomePage({ session }) {
 
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden transition-colors duration-300">
-      {/* 1. Sidebar (부드러운 슬라이드 애니메이션) */}
+      {/* Sidebar*/}
       <div
         className={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 ease-in-out ${
           isSidebarOpen
@@ -106,7 +102,7 @@ export default function HomePage({ session }) {
         />
       </aside>
 
-      {/* 2. Main Content */}
+      {/* Main Content */}
       <main className="flex-1 flex flex-col h-full w-full relative">
         {/* Header */}
         <header className="h-16 flex items-center justify-between px-6 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md z-30">
@@ -171,7 +167,7 @@ export default function HomePage({ session }) {
                 <p>AI 채팅에서 기분에 맞는 노래를 추천받아보세요!</p>
                 <button
                   onClick={() => (window.location.href = "/chating")}
-                  className="mt-2 flex items-center gap-2 px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-full font-bold transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+                  className="mt-3 ml-20 flex items-center gap-2 px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-full font-bold transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1"
                 >
                   <PlayCircle size={20} />
                   추천받으러 가기
